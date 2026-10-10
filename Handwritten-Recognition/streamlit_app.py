@@ -462,7 +462,7 @@ def main():
     st.markdown('''
     <div style="text-align: center; margin-bottom: 0.35rem;">
         <span style="display: inline-block; font-family: 'Lora', Georgia, serif; font-size: 0.88rem; font-style: italic; color: #4A3E34; background: #FAF8F2; padding: 0.28rem 1rem; border-radius: 20px; box-shadow: 0 2px 6px rgba(60, 45, 30, 0.08); border: 1px solid rgba(80, 60, 40, 0.12); letter-spacing: 0.015em;">
-            Note: use MNIST for Numbers &amp; EMNIST for Alphanumeric 62
+            Note: Use MNIST for Numbers &amp; EMNIST for Alphanumeric 62  -  Select From Sidebar
         </span>
     </div>
     <h1 class="main-page-title">Digit Recognition</h1>
