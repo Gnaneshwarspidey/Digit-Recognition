@@ -458,8 +458,15 @@ def main():
         </div>
         """, unsafe_allow_html=True)
 
-    # Centered Main Title (Exactly as in reference image)
-    st.markdown('<h1 class="main-page-title">Digit Recognition</h1>', unsafe_allow_html=True)
+    # Centered Header Note Point & Main Title (Exactly as in reference image)
+    st.markdown('''
+    <div style="text-align: center; margin-bottom: 0.35rem;">
+        <span style="display: inline-block; font-family: 'Lora', Georgia, serif; font-size: 0.88rem; font-style: italic; color: #4A3E34; background: #FAF8F2; padding: 0.28rem 1rem; border-radius: 20px; box-shadow: 0 2px 6px rgba(60, 45, 30, 0.08); border: 1px solid rgba(80, 60, 40, 0.12); letter-spacing: 0.015em;">
+            Note: use MNIST for Numbers &amp; EMNIST for Alphanumeric 62
+        </span>
+    </div>
+    <h1 class="main-page-title">Digit Recognition</h1>
+    ''', unsafe_allow_html=True)
 
     # 3 Elegant Stationery Navbar Tabs
     nav_c1, nav_c2, nav_c3 = st.columns([1.1, 1.6, 1.7])
