@@ -324,21 +324,43 @@ MNIST_MAP = get_mnist_mapping()
 EMNIST_MAP = get_emnist_mapping()
 
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def resolve_asset_path(rel_path: str):
+    """Resolves relative assets regardless of working directory."""
+    candidates = [
+        rel_path,
+        os.path.join(BASE_DIR, rel_path),
+        os.path.join(BASE_DIR, "Handwritten-Recognition", rel_path),
+        os.path.join(BASE_DIR, "..", rel_path),
+        os.path.join(BASE_DIR, os.path.basename(rel_path)),
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    return None
+
 @st.cache_resource
 def get_lazy_model(model_name: str):
     """Loads model on-demand with caching and zero-latency graph warmup."""
-    if "EMNIST" in model_name:
-        path = "emnist_model.keras" if os.path.exists("emnist_model.keras") else "models/emnist_model.keras"
-    else:
-        path = "mnist_model.keras" if os.path.exists("mnist_model.keras") else "models/mnist_model.keras"
-    if os.path.exists(path):
-        try:
-            m = tf.keras.models.load_model(path)
-            # Warm up graph execution on a dummy zero tensor to eliminate first-call warmup latency
-            _ = m(tf.zeros((1, 28, 28, 1), dtype=tf.float32), training=False)
-            return m
-        except Exception:
-            return None
+    target_name = "emnist_model.keras" if "EMNIST" in model_name else "mnist_model.keras"
+    candidates = [
+        os.path.join(BASE_DIR, target_name),
+        os.path.join(BASE_DIR, "models", target_name),
+        os.path.join("models", target_name),
+        target_name,
+        os.path.join("Handwritten-Recognition", "models", target_name),
+        os.path.join("Handwritten-Recognition", target_name),
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            try:
+                m = tf.keras.models.load_model(path)
+                # Warm up graph execution on a dummy zero tensor to eliminate first-call warmup latency
+                _ = m(tf.zeros((1, 28, 28, 1), dtype=tf.float32), training=False)
+                return m
+            except Exception:
+                continue
     return None
 
 
@@ -629,16 +651,18 @@ def main():
                     <h4 style="font-family: 'Playfair Display', serif; font-size: 1.25rem; font-weight: 700; color: #1F1914; margin: 0 0 0.5rem 0;">MNIST Confusion Matrix</h4>
                 </div>
                 """, unsafe_allow_html=True)
-                if os.path.exists("reports/mnist_confusion_matrix.png"):
-                    st.image("reports/mnist_confusion_matrix.png", use_container_width=True)
+                p_m_cm = resolve_asset_path("reports/mnist_confusion_matrix.png")
+                if p_m_cm:
+                    st.image(p_m_cm, use_container_width=True)
             with e2:
                 st.markdown("""
                 <div class="spec-card-paper">
                     <h4 style="font-family: 'Playfair Display', serif; font-size: 1.25rem; font-weight: 700; color: #1F1914; margin: 0 0 0.5rem 0;">Training Loss & Accuracy Curve</h4>
                 </div>
                 """, unsafe_allow_html=True)
-                if os.path.exists("reports/mnist_training_history.png"):
-                    st.image("reports/mnist_training_history.png", use_container_width=True)
+                p_m_hist = resolve_asset_path("reports/mnist_training_history.png")
+                if p_m_hist:
+                    st.image(p_m_hist, use_container_width=True)
 
         with tab_eval_emnist:
             ee1, ee2 = st.columns(2)
@@ -648,16 +672,18 @@ def main():
                     <h4 style="font-family: 'Playfair Display', serif; font-size: 1.25rem; font-weight: 700; color: #1F1914; margin: 0 0 0.5rem 0;">EMNIST Confusion Matrix Heatmap</h4>
                 </div>
                 """, unsafe_allow_html=True)
-                if os.path.exists("reports/emnist_confusion_matrix.png"):
-                    st.image("reports/emnist_confusion_matrix.png", use_container_width=True)
+                p_e_cm = resolve_asset_path("reports/emnist_confusion_matrix.png")
+                if p_e_cm:
+                    st.image(p_e_cm, use_container_width=True)
             with ee2:
                 st.markdown("""
                 <div class="spec-card-paper">
                     <h4 style="font-family: 'Playfair Display', serif; font-size: 1.25rem; font-weight: 700; color: #1F1914; margin: 0 0 0.5rem 0;">EMNIST Training History Curve</h4>
                 </div>
                 """, unsafe_allow_html=True)
-                if os.path.exists("reports/emnist_training_history.png"):
-                    st.image("reports/emnist_training_history.png", use_container_width=True)
+                p_e_hist = resolve_asset_path("reports/emnist_training_history.png")
+                if p_e_hist:
+                    st.image(p_e_hist, use_container_width=True)
 
 
 if __name__ == "__main__":
