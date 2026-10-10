@@ -1,5 +1,5 @@
-
-Live URL : gnaneshwar-digit-recognition.streamlit.app
+#
+Live URL : https://gnaneshwar-digit-recognition.streamlit.app/
 
 # Handwritten Digit and Character Recognition
 
