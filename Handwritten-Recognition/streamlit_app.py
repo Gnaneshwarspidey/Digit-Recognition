@@ -12,12 +12,76 @@ import os
 import cv2
 import numpy as np
 import pandas as pd
+import base64
+import io
+import json
 from PIL import Image
 import streamlit as st
-from streamlit_drawable_canvas import st_canvas
+import streamlit_drawable_canvas as sdc
 import tensorflow as tf
 from src.preprocess import segment_and_preprocess_characters
 from src.utils import get_emnist_mapping, get_mnist_mapping
+
+# Robust wrapper for st_canvas across Streamlit versions & cloud environments
+def safe_st_canvas(*args, **kwargs):
+    # Ensure initial_drawing has version and background if provided
+    init_draw = kwargs.get("initial_drawing")
+    if init_draw is not None and isinstance(init_draw, dict):
+        if "version" not in init_draw:
+            init_draw["version"] = "4.4.0"
+        if "background" not in init_draw:
+            init_draw["background"] = kwargs.get("background_color", "#FBF9F4")
+    elif init_draw is not None:
+        kwargs["initial_drawing"] = None
+
+    try:
+        res = sdc.original_st_canvas(*args, **kwargs)
+        if res is sdc.CanvasResult or isinstance(res, type):
+            return sdc.CanvasResult(image_data=None, json_data=None)
+        return res
+    except Exception:
+        # Fallback if component_value is returned as a string or serializer mismatch occurs
+        try:
+            val = sdc._component_func(
+                fillColor=kwargs.get("fill_color", "#eee"),
+                strokeWidth=kwargs.get("stroke_width", 20),
+                strokeColor=kwargs.get("stroke_color", "black"),
+                backgroundColor=kwargs.get("background_color", ""),
+                backgroundImageURL=None,
+                realtimeUpdateStreamlit=kwargs.get("update_streamlit", True) and (kwargs.get("drawing_mode", "freedraw") != "polygon"),
+                canvasHeight=kwargs.get("height", 400),
+                canvasWidth=kwargs.get("width", 600),
+                drawingMode=kwargs.get("drawing_mode", "freedraw"),
+                initialDrawing=kwargs.get("initial_drawing", {"version": "4.4.0", "background": kwargs.get("background_color", "")}),
+                displayToolbar=kwargs.get("display_toolbar", True),
+                displayRadius=kwargs.get("point_display_radius", 3),
+                key=kwargs.get("key"),
+                default=None,
+            )
+            if val is None:
+                return sdc.CanvasResult(image_data=None, json_data=None)
+            if isinstance(val, str):
+                try:
+                    val = json.loads(val)
+                except Exception:
+                    return sdc.CanvasResult(image_data=None, json_data=None)
+            if isinstance(val, dict):
+                img_data = None
+                if "data" in val and val["data"]:
+                    try:
+                        _, _d = val["data"].split(";base64,")
+                        img_data = np.asarray(Image.open(io.BytesIO(base64.b64decode(_d))))
+                    except Exception:
+                        img_data = None
+                return sdc.CanvasResult(image_data=img_data, json_data=val.get("raw"))
+        except Exception:
+            pass
+        return sdc.CanvasResult(image_data=None, json_data=None)
+
+if not hasattr(sdc, "original_st_canvas"):
+    sdc.original_st_canvas = sdc.st_canvas
+sdc.st_canvas = safe_st_canvas
+st_canvas = safe_st_canvas
 
 # Configure Streamlit page
 st.set_page_config(
@@ -451,7 +515,14 @@ def main():
         # ---------------------------------------------------------------------
         with col_sketchpad:
             # Prepare initial drawing payload for undo/redo
-            init_drawing = {"objects": list(st.session_state.canvas_strokes)} if st.session_state.canvas_strokes else None
+            if st.session_state.canvas_strokes:
+                init_drawing = {
+                    "version": "4.4.0",
+                    "objects": list(st.session_state.canvas_strokes),
+                    "background": "#FBF9F4",
+                }
+            else:
+                init_drawing = None
 
             # Torn Paper Sketchpad Sheet (display_toolbar=False removes default toolbar!)
             st.markdown('<div class="torn-canvas-sheet">', unsafe_allow_html=True)
@@ -471,7 +542,9 @@ def main():
 
             # Synchronize live drawn strokes without race condition
             if st.session_state.last_canvas_key == st.session_state.canvas_key:
-                if canvas_res.json_data is not None and "objects" in canvas_res.json_data:
+                if (canvas_res is not None and not isinstance(canvas_res, type)
+                    and hasattr(canvas_res, "json_data") and canvas_res.json_data is not None
+                    and isinstance(canvas_res.json_data, dict) and "objects" in canvas_res.json_data):
                     live_objects = canvas_res.json_data["objects"]
                     if len(live_objects) > len(st.session_state.canvas_strokes):
                         st.session_state.canvas_strokes = list(live_objects)
@@ -518,9 +591,10 @@ def main():
             # Check for canvas input
             has_drawing = False
             drawing_img = None
-            if canvas_res.image_data is not None:
+            if (canvas_res is not None and not isinstance(canvas_res, type)
+                and hasattr(canvas_res, "image_data") and canvas_res.image_data is not None):
                 raw_data = canvas_res.image_data
-                if np.any(raw_data[:, :, :3] < 235):
+                if isinstance(raw_data, np.ndarray) and raw_data.ndim >= 3 and np.any(raw_data[:, :, :3] < 235):
                     drawing_img = Image.fromarray(raw_data.astype("uint8"))
                     has_drawing = True
 
