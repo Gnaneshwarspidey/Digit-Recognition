@@ -3,3 +3,4 @@ showErrorDetails = true
 
 [server]
 headless = true
+

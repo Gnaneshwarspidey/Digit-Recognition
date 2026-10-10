@@ -22,9 +22,16 @@ import tensorflow as tf
 from src.preprocess import segment_and_preprocess_characters
 from src.utils import get_emnist_mapping, get_mnist_mapping
 
-# Robust wrapper for st_canvas across Streamlit versions & cloud environments
+import inspect
+
+class FallbackCanvasResult:
+    def __init__(self, image_data=None, json_data=None):
+        self.image_data = image_data
+        self.json_data = json_data
+
+# Robust wrapper for st_canvas across all Streamlit versions & canvas releases
 def safe_st_canvas(*args, **kwargs):
-    # Ensure initial_drawing has version and background if provided
+    # Ensure initial_drawing is well-structured for fabric.js
     init_draw = kwargs.get("initial_drawing")
     if init_draw is not None and isinstance(init_draw, dict):
         if "version" not in init_draw:
@@ -35,48 +42,15 @@ def safe_st_canvas(*args, **kwargs):
         kwargs["initial_drawing"] = None
 
     try:
-        res = sdc.original_st_canvas(*args, **kwargs)
-        if res is sdc.CanvasResult or isinstance(res, type):
-            return sdc.CanvasResult(image_data=None, json_data=None)
+        # Inspect parameters accepted by the installed st_canvas version
+        sig = inspect.signature(sdc.original_st_canvas)
+        filtered_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
+        res = sdc.original_st_canvas(*args, **filtered_kwargs)
+        if res is sdc.CanvasResult or isinstance(res, type) or res is None:
+            return FallbackCanvasResult()
         return res
     except Exception:
-        # Fallback if component_value is returned as a string or serializer mismatch occurs
-        try:
-            val = sdc._component_func(
-                fillColor=kwargs.get("fill_color", "#eee"),
-                strokeWidth=kwargs.get("stroke_width", 20),
-                strokeColor=kwargs.get("stroke_color", "black"),
-                backgroundColor=kwargs.get("background_color", ""),
-                backgroundImageURL=None,
-                realtimeUpdateStreamlit=kwargs.get("update_streamlit", True) and (kwargs.get("drawing_mode", "freedraw") != "polygon"),
-                canvasHeight=kwargs.get("height", 400),
-                canvasWidth=kwargs.get("width", 600),
-                drawingMode=kwargs.get("drawing_mode", "freedraw"),
-                initialDrawing=kwargs.get("initial_drawing", {"version": "4.4.0", "background": kwargs.get("background_color", "")}),
-                displayToolbar=kwargs.get("display_toolbar", True),
-                displayRadius=kwargs.get("point_display_radius", 3),
-                key=kwargs.get("key"),
-                default=None,
-            )
-            if val is None:
-                return sdc.CanvasResult(image_data=None, json_data=None)
-            if isinstance(val, str):
-                try:
-                    val = json.loads(val)
-                except Exception:
-                    return sdc.CanvasResult(image_data=None, json_data=None)
-            if isinstance(val, dict):
-                img_data = None
-                if "data" in val and val["data"]:
-                    try:
-                        _, _d = val["data"].split(";base64,")
-                        img_data = np.asarray(Image.open(io.BytesIO(base64.b64decode(_d))))
-                    except Exception:
-                        img_data = None
-                return sdc.CanvasResult(image_data=img_data, json_data=val.get("raw"))
-        except Exception:
-            pass
-        return sdc.CanvasResult(image_data=None, json_data=None)
+        return FallbackCanvasResult()
 
 if not hasattr(sdc, "original_st_canvas"):
     sdc.original_st_canvas = sdc.st_canvas
