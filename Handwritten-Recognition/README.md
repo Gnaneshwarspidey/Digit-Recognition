@@ -42,17 +42,32 @@ An end-to-end Deep Learning system for real-time handwritten digit and character
 
 ```text
 Handwritten-Recognition/
-├── mnist_model.keras             # Trained MNIST CNN model weights (~99.37% acc)
-├── emnist_model.keras            # Trained EMNIST ByClass CNN model weights
-├── mnist_train.py                # MNIST model training & evaluation script
-├── emnist_train.py               # EMNIST ByClass model training script
-├── streamlit_app.py              # Interactive Streamlit application
-├── mnist_confusion_matrix.png    # MNIST confusion matrix evaluation plot
-├── mnist_training_history.png    # MNIST training accuracy & loss curves
-├── emnist_confusion_matrix.png   # EMNIST confusion matrix evaluation plot
-├── emnist_training_history.png   # EMNIST training accuracy & loss curves
-├── requirements.txt              # Project package dependencies
-└── README.md                     # Project documentation
+├── data/                         # Local EMNIST / MNIST dataset files
+│   └── emnist/                   # Official NIST EMNIST ByClass gzips
+├── models/                       # Saved high-accuracy Keras CNN models
+│   ├── mnist_model.keras         # MNIST model (~99.37% test accuracy)
+│   └── emnist_model.keras        # EMNIST 62-Class model (78.1% accuracy)
+├── reports/                      # Visual evaluation curves and reports
+│   ├── mnist_confusion_matrix.png
+│   ├── mnist_training_history.png
+│   ├── emnist_confusion_matrix.png
+│   ├── emnist_training_history.png
+│   └── evaluation_report.md
+├── src/                          # Modular production source code
+│   ├── preprocess.py             # 9-step Center-of-Mass & segmentation
+│   ├── model.py                  # Modular CNN architecture builder
+│   └── utils.py                  # Mappings & visualization utilities
+├── tests/                        # Comprehensive test suites
+│   ├── test_pipeline.py          # Integration & pipeline tests (10/10)
+│   └── test_all_classes.py       # Full 62-class test cases (62/62)
+├── app.py                        # Application entrypoint alias
+├── streamlit_app.py              # Interactive Streamlit AI Studio
+├── predict.py                    # Standalone CLI inference tool
+├── evaluate.py                   # Standalone evaluation & reporting tool
+├── mnist_train.py                # MNIST training script
+├── emnist_train.py               # EMNIST training script
+├── requirements.txt              # Pinned Python package dependencies
+└── README.md                     # Technical documentation
 ```
 
 ---

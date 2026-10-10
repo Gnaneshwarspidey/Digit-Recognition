@@ -1,0 +1,671 @@
+=== 3.6 Functional Requirements ===
+3.6 Functional Requirements
+ID
+Requirement
+Priority
+FR1
+System shall load and preprocess MNIST and EMNIST datasets
+Must
+FR2
+System shall train a CNN and save the trained model (.keras / .h5)
+Must
+FR3
+System shall evaluate the model and produce accuracy, precision, recall, F1, confusion matrix
+Must
+FR4
+System shall accept an image upload (PNG/JPG) and predict the class
+Must
+FR5
+System shall provide a drawing canvas for live input
+Should
+FR6
+System shall preprocess user input (grayscale, invert if needed, centre, resize to 28×28, normalise)
+Must
+FR7
+System shall display predicted label with confidence % and top-3 results
+Should
+FR8
+System shall support both digit-only and character (EMNIST) models
+Should
+FR9
+System shall log training history (loss/accuracy per epoch) and plot curves
+Must
+3.7 Non-Functional Requirements
+Category
+Requirement
+Performance
+Inference ≤ 1 s per image on a standard laptop CPU
+Accuracy
+MNIST ≥ 99%; EMNIST Balanced ≥ 85%
+Usability
+UI usable without any training; clear labels and error messages
+Portability
+Runs on Windows/Linux/macOS with Python 3.9+
+Reproducibility
+Fixed random seeds, pinned requirements.txt
+Maintainability
+Modular code (data, model, train, evaluate, app), documented
+Size
+Saved model < 50 MB
+3.8 Success Metrics
+Metric
+Target
+MNIST test accuracy
+≥ 99.0%
+EMNIST Balanced test accuracy
+≥ 85%
+Macro F1-score
+≥ 0.85 (EMNIST), ≥ 0.99 (MNIST)
+Inference latency
+≤ 1 s
+Real-world hand-drawn sample accuracy (own test set of 100+ samples)
+≥ 90% (digits)
+3.9 Assumptions & Constraints
+Input contains a single, reasonably centred character on a plain background.
+Training is done on CPU or a free GPU (Google Colab / Kaggle).
+Datasets are used under their public licences for academic purposes.
+Project must be completed within one semester [~12–14 weeks].
+3.10 Dependencies
+Python, TensorFlow/Keras, NumPy, Matplotlib, scikit-learn, OpenCV/Pillow, Streamlit or Flask (UI), EMNIST dataset (via tensorflow_datasets or the emnist package), Google Colab/Kaggle (optional GPU).
+3.11 Release Plan
+Milestone
+Scope
+M1
+MNIST CNN trained, ≥ 99% accuracy
+M2
+EMNIST CNN trained and evaluated
+M3
+Prediction pipeline for custom images
+M4
+UI (canvas + upload)
+M5
+Testing, report, presentation
+3.12 Open Questions
+Which EMNIST split will be the final one (Balanced, Letters or ByClass)?
+Will the UI be Streamlit (fast) or Flask (more customisable)?
+Will the project be deployed publicly (Hugging Face Spaces/Streamlit Cloud) or demoed locally?
+4. Software Requirements
+
+============================================================
+
+=== 3.7 Non-Functional Requirements ===
+3.7 Non-Functional Requirements
+Category
+Requirement
+Performance
+Inference ≤ 1 s per image on a standard laptop CPU
+Accuracy
+MNIST ≥ 99%; EMNIST Balanced ≥ 85%
+Usability
+UI usable without any training; clear labels and error messages
+Portability
+Runs on Windows/Linux/macOS with Python 3.9+
+Reproducibility
+Fixed random seeds, pinned requirements.txt
+Maintainability
+Modular code (data, model, train, evaluate, app), documented
+Size
+Saved model < 50 MB
+3.8 Success Metrics
+Metric
+Target
+MNIST test accuracy
+≥ 99.0%
+EMNIST Balanced test accuracy
+≥ 85%
+Macro F1-score
+≥ 0.85 (EMNIST), ≥ 0.99 (MNIST)
+Inference latency
+≤ 1 s
+Real-world hand-drawn sample accuracy (own test set of 100+ samples)
+≥ 90% (digits)
+3.9 Assumptions & Constraints
+Input contains a single, reasonably centred character on a plain background.
+Training is done on CPU or a free GPU (Google Colab / Kaggle).
+Datasets are used under their public licences for academic purposes.
+Project must be completed within one semester [~12–14 weeks].
+3.10 Dependencies
+Python, TensorFlow/Keras, NumPy, Matplotlib, scikit-learn, OpenCV/Pillow, Streamlit or Flask (UI), EMNIST dataset (via tensorflow_datasets or the emnist package), Google Colab/Kaggle (optional GPU).
+3.11 Release Plan
+Milestone
+Scope
+M1
+MNIST CNN trained, ≥ 99% accuracy
+M2
+EMNIST CNN trained and evaluated
+M3
+Prediction pipeline for custom images
+M4
+UI (canvas + upload)
+M5
+Testing, report, presentation
+3.12 Open Questions
+Which EMNIST split will be the final one (Balanced, Letters or ByClass)?
+Will the UI be Streamlit (fast) or Flask (more customisable)?
+Will the project be deployed publicly (Hugging Face Spaces/Streamlit Cloud) or demoed locally?
+4. Software Requirements Specification (SRS)
+4.1 Introduction
+Purpose: To specify the requirements of the Handwritten Digit & Character Recognition system. Scope: An offline-trained CNN with a user interface for single-character recognition. Definitions: CNN – Convolutional Neural Network; MNIST – 70,000 handwritten digit images; EMNIST – Extended MNIST with letters and digits; ReLU – Rectified Linear Unit; Softmax – probability-producing output activation.
+4.2 Overall Description
+Product perspective: Standalone application with a training module and an inference module.
+User classes: Student, evaluator, general user.
+Operating environment: Windows 10/11, Ubuntu 20.04+, macOS; Python 3.9+; 8 GB RAM recommended.
+Design constraints: 28×28 grayscale input; open-source libraries only.
+4.3 Hardware Requirements
+Com
+
+============================================================
+
+=== 9. Implementation Guide ===
+9. Implementation Guide
+9.1 Folder Structure
+handwritten-recognition/├── data/                 # datasets (optional local copy)├── models/               # saved .keras models├── notebooks/            # Colab / Jupyter experiments├── reports/              # plots, confusion matrices, metrics├── src/│   ├── data.py│   ├── model.py│   ├── train.py│   ├── evaluate.py│   ├── preprocess.py│   └── predict.py├── app.py                # Streamlit / Flask UI├── requirements.txt└── README.md
+9.2 requirements.txt (example)
+tensorflow>=2.12numpymatplotlibseabornscikit-learnopencv-pythonpillowstreamlitstreamlit-drawable-canvastensorflow-datasets
+9.3 Model Code (Keras)
+from tensorflow.keras import layers, modelsdef build_cnn(num_classes):    model = models.Sequential([        layers.Input(shape=(28, 28, 1)),        layers.Conv2D(32, 3, padding='same'), layers.BatchNormalization(), layers.ReLU(),        layers.Conv2D(32, 3, padding='same'), layers.BatchNormalization(), layers.ReLU(),        layers.MaxPooling2D(), layers.Dropout(0.25),        layers.Conv2D(64, 3, padding='same'), layers.BatchNormalization(), layers.ReLU(),        layers.Conv2D(64, 3, padding='same'), layers.BatchNormalization(), layers.ReLU(),        layers.MaxPooling2D(), layers.Dropout(0.25),        layers.Flatten(),        layers.Dense(256, activation='relu'), layers.Dropout(0.5),        layers.Dense(num_classes, activation='softmax'),    ])    model.compile(optimizer='adam',                  loss='sparse_categorical_crossentropy',                  metrics=['accuracy'])    return model
+9.4 Training Code (MNIST)
+from tensorflow import kerasfrom tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateaufrom model import build_cnn(x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()x_train = (x_train.astype('float32') / 255.0)[..., None]x_test  = (x_test.astype('float32') / 255.0)[..., None]model = build_cnn(10)callbacks = [    EarlyStopping(patience=5, restore_best_weights=True),    ModelCheckpoint('models/mnist_cnn.keras', save_best_only=True),    ReduceLROnPlateau(factor=0.5, patience=2),]history = model.fit(x_train, y_train, validation_split=0.1,                    epochs=30, batch_size=128, callbacks=callbacks)print(model.evaluate(x_test, y_test))
+9.5 EMNIST Loading Note
+Use tensorflow_datasets (tfds.load('emnist/balanced')) or the emnist Python package, then fix orientation by transposing each image's height and width axes before training. Check the document
+
+============================================================
+
+=== 10. Test Plan ===
+10. Test Plan & Test Cases
+10.1 Test Strategy
+Level
+Scope
+Unit
+Preprocessing functions, model output shape, label mapping
+Integration
+Data → model → prediction pipeline
+System
+Full UI flow (draw/upload → result)
+Performance
+Inference time, memory usage
+Acceptance
+Accuracy targets from the PRD
+10.2 Test Cases
+TC
+Description
+Input
+Expected result
+Status
+TC01
+Load MNIST
+Run loader
+60,000 train / 10,000 test images
+[ ]
+TC02
+Normalisation
+Any image
+Pixel values within 0–1
+[ ]
+TC03
+Model output shape
+1 image
+Vector of 10 (or 47) probabilities summing to 1
+[ ]
+TC04
+Predict digit "7"
+Clean hand-drawn 7
+Predicts 7
+[ ]
+TC05
+White background image
+Black digit on white
+Correct after inversion
+[ ]
+TC06
+Blank image
+All white/black
+Error message shown
+[ ]
+TC07
+Off-centre character
+Digit in a corner
+Correct after crop/centre
+[ ]
+TC08
+Thick vs thin strokes
+Same digit, different widths
+Correct prediction
+[ ]
+TC09
+Invalid file
+.txt/.pdf upload
+"Unsupported file" message
+[ ]
+TC10
+Noisy image
+Digit with noise
+Correct or low-confidence warning
+[ ]
+TC11
+Similar characters
+0/O, 1/l/I, 5/S
+Top-3 shown, confusion noted
+[ ]
+TC12
+Latency
+Single prediction
+≤ 1 second
+[ ]
+TC13
+Model reload
+Restart app
+Model loads without retraining
+[ ]
+TC14
+Reproducibility
+Retrain with seed 42
+Accuracy within ±0.3%
+[ ]
+11. Evaluation & Results Template
+11.1 Metrics to Report
+Accuracy, precision, recall, F1-score (macro and weighted), confusion matrix, per-class accuracy, training/validation loss and accuracy curves, inference time.
+11.2 Results Table (fill after experiments)
+Model
+Dataset
+Train acc
+Val acc
+Test acc
+Macro F1
+Params
+MLP baseline
+MNIST
+[ ]
+[ ]
+[ ]
+[ ]
+[ ]
+CNN baseline
+MNIST
+[ ]
+[ ]
+[ ]
+[ ]
+[ ]
+CNN + Aug + BN
+MNIST
+[ ]
+[ ]
+[ ]
+[ ]
+[ ]
+CNN
+EMNIST Balanced
+[ ]
+[ ]
+[ ]
+[ ]
+[ ]
+CNN + Aug + BN
+EMNIST Balanced
+[ ]
+[ ]
+[ ]
+[ ]
+[ ]
+11.3 Analysis Points
+Which classes are most confused and why (e.g., 4/9, 3/5, 0/O, 1/I/l, g/q)?
+Effect of dropout, batch normalisation and augmentation on overfitting.
+Gap between benchmark accuracy and real hand-drawn accuracy.
+Limitations and failure cases with sample images.
+12. Project Plan & Timeline (12 Weeks)
+Week
+Activity
+Deliverable
+1
+Topic finalisation, literature review
+Synopsis
+2
+Requirements, PRD, SRS
+PRD + SRS
+3
+Environment setup, dataset exploration
+EDA notebook
+4
+Preprocessing pipeline
+data.py, preprocess.py
+5
+Baseline CNN on MNIST
+Trained model, ≥ 98%
+6
+Tuning, regularisation, augmentation
+≥ 99% MNIST
+7
+EMNIST training
+EMNIST model
+8
+Evaluation, confusi
+
+============================================================
+
+=== 11. Evaluation ===
+11. Evaluation & Results Template
+11.1 Metrics to Report
+Accuracy, precision, recall, F1-score (macro and weighted), confusion matrix, per-class accuracy, training/validation loss and accuracy curves, inference time.
+11.2 Results Table (fill after experiments)
+Model
+Dataset
+Train acc
+Val acc
+Test acc
+Macro F1
+Params
+MLP baseline
+MNIST
+[ ]
+[ ]
+[ ]
+[ ]
+[ ]
+CNN baseline
+MNIST
+[ ]
+[ ]
+[ ]
+[ ]
+[ ]
+CNN + Aug + BN
+MNIST
+[ ]
+[ ]
+[ ]
+[ ]
+[ ]
+CNN
+EMNIST Balanced
+[ ]
+[ ]
+[ ]
+[ ]
+[ ]
+CNN + Aug + BN
+EMNIST Balanced
+[ ]
+[ ]
+[ ]
+[ ]
+[ ]
+11.3 Analysis Points
+Which classes are most confused and why (e.g., 4/9, 3/5, 0/O, 1/I/l, g/q)?
+Effect of dropout, batch normalisation and augmentation on overfitting.
+Gap between benchmark accuracy and real hand-drawn accuracy.
+Limitations and failure cases with sample images.
+12. Project Plan & Timeline (12 Weeks)
+Week
+Activity
+Deliverable
+1
+Topic finalisation, literature review
+Synopsis
+2
+Requirements, PRD, SRS
+PRD + SRS
+3
+Environment setup, dataset exploration
+EDA notebook
+4
+Preprocessing pipeline
+data.py, preprocess.py
+5
+Baseline CNN on MNIST
+Trained model, ≥ 98%
+6
+Tuning, regularisation, augmentation
+≥ 99% MNIST
+7
+EMNIST training
+EMNIST model
+8
+Evaluation, confusion matrix, ablation
+Results report
+9
+Prediction pipeline for custom images
+predict.py
+10
+UI development (canvas + upload)
+app.py
+11
+Testing, bug fixing
+Test report
+12
+Report writing, PPT, demo, viva prep
+Final submission
+Team Roles (edit as needed)
+Member
+Responsibility
+[Member 1]
+Data preprocessing, model training, evaluation
+[Member 2]
+UI, testing, documentation, presentation
+13. Risk Register
+Risk
+Likelihood
+Impact
+Mitigation
+Overfitting on MNIST
+Medium
+Medium
+Dropout, augmentation, early stopping
+Poor accuracy on real hand-drawn input
+High
+High
+Robust preprocessing, augmentation, test on own samples
+EMNIST orientation bug
+High
+High
+Transpose images, visually verify samples
+Slow training on CPU
+Medium
+Medium
+Use Colab/Kaggle GPU, fewer epochs
+Confusable classes (O/0, I/l)
+High
+Medium
+Use EMNIST Balanced (merged classes), show top-3
+Library version conflicts
+Medium
+Low
+Pin versions in requirements.txt, use a virtual environment
+Time overrun
+Medium
+Medium
+Prioritise MNIST + UI first; EMNIST as stretch
+14. User Manual & Deployment Guide
+14.1 Installation
+Install Python 3.9+ and VS Code.
+Create a virtual environment: python -m venv venv and activate it.
+Install dependencies: pip install -r requirements.txt.
+14.2 Training
+python src/train.py --dataset mnist (or --dataset emni
+
+============================================================
+
+=== 14. User Manual ===
+14. User Manual & Deployment Guide
+14.1 Installation
+Install Python 3.9+ and VS Code.
+Create a virtual environment: python -m venv venv and activate it.
+Install dependencies: pip install -r requirements.txt.
+14.2 Training
+python src/train.py --dataset mnist (or --dataset emnist). The best model is saved in models/.
+14.3 Evaluation
+python src/evaluate.py generates metrics and plots in reports/.
+14.4 Running the App
+streamlit run app.py, then open the local URL shown in the terminal.
+14.5 Using the App
+Select Digit or Character mode.
+Draw on the canvas (white stroke on black background) or upload an image.
+Click Predict to see the label, confidence and top-3 results.
+Click Clear to try another sample.
+14.6 Optional Deployment
+Push the repository to GitHub and deploy on Streamlit Community Cloud or Hugging Face Spaces (include the trained model file and requirements.txt).
+15. Conclusion & Future Scope
+Conclusion
+This project demonstrates that a CNN can effectively learn discriminative features for handwritten digit and character recognition. With proper preprocessing, regularisation and augmentation, the model reaches high accuracy on MNIST and competitive accuracy on EMNIST, and the accompanying interface makes the system usable on real hand-drawn input. [Replace with your actual results after experiments.]
+Future Scope
+Word- and sentence-level recognition using CRNN + CTC loss
+Support for regional scripts (Devanagari, Telugu, Tamil)
+Transfer learning and deeper architectures (ResNet, EfficientNet)
+Model compression and conversion to TensorFlow Lite / TensorFlow.js for mobile and in-browser use
+Active learning with user feedback to improve the model over time
+Explainability using Grad-CAM to visualise the pixels that influenced a prediction
+16. References
+Y. LeCun, L. Bottou, Y. Bengio, P. Haffner, "Gradient-based learning applied to document recognition," Proceedings of the IEEE, 1998.
+G. Cohen, S. Afshar, J. Tapson, A. van Schaik, "EMNIST: an extension of MNIST to handwritten letters," arXiv:1702.05373, 2017.
+D. Cireşan, U. Meier, J. Schmidhuber, "Multi-column deep neural networks for image classification," CVPR, 2012.
+A. Krizhevsky, I. Sutskever, G. Hinton, "ImageNet classification with deep convolutional neural networks," NIPS, 2012.
+S. Ioffe, C. Szegedy, "Batch normalization: accelerating deep network training by reducing internal covariate shift," ICML, 2015.
+N. Srivastava et al., "Dropout: a simple way to prevent neural networks from overfitting," JML
+
+============================================================
+
+=== 17. Viva Questions ===
+17. Viva Questions & Answers
+#
+Question
+Short answer
+1
+What is a CNN?
+A neural network that uses convolution layers to automatically learn spatial features from images.
+2
+Why CNN instead of a plain MLP?
+CNNs share weights, preserve spatial structure and need far fewer parameters, giving better accuracy on images.
+3
+What does a convolution layer do?
+Slides filters over the image to detect local patterns like edges and curves.
+4
+Why pooling?
+Reduces spatial size and computation, and gives small translation invariance.
+5
+Why ReLU?
+Simple, reduces vanishing gradients, speeds up training.
+6
+Why softmax at the output?
+Converts scores to probabilities across classes that sum to 1.
+7
+Which loss did you use and why?
+Categorical cross-entropy, suited to multi-class classification with softmax.
+8
+What is dropout?
+Randomly disables neurons during training to reduce overfitting.
+9
+What is batch normalisation?
+Normalises layer inputs per batch, stabilising and speeding up training.
+10
+MNIST vs EMNIST?
+MNIST has only digits (10 classes); EMNIST extends it with letters (and digits) in multiple splits.
+11
+Why are EMNIST images rotated?
+They are stored in a transposed orientation, so they must be transposed back before use.
+12
+How did you prevent overfitting?
+Dropout, batch norm, augmentation, early stopping, validation monitoring.
+13
+Why is accuracy lower on EMNIST?
+More classes and many visually similar pairs (O/0, I/l, g/q).
+14
+What is a confusion matrix?
+A table of actual vs predicted classes, revealing which classes are confused.
+15
+Why Adam optimiser?
+Adaptive learning rates and momentum give fast, stable convergence.
+16
+Why is real hand-drawn accuracy lower than test accuracy?
+Distribution shift in stroke width, position, background and noise; reduced by preprocessing and augmentation.
+17
+What is an epoch / batch size?
+One full pass through the training data / number of samples per weight update.
+18
+How can you improve the model further?
+Deeper networks, ensembles, more augmentation, transfer learning, tuning.
+19
+What are the limitations?
+Single character only, 28×28 input, no cursive or multi-script support.
+20
+How will you extend it?
+CRNN with CTC for words, regional scripts, TFLite for mobile.
+18. Final Report Chapter Structure & Submission Checklist
+18.1 Suggested Report Structure
+Chapter
+Content
+Source section here
+Front matter
+Title, certificate, declaration, acknowledgement, abstract, contents, list of figures/tables
+1, 2
+1. Introduction
+Background, motivation
+
+============================================================
+
+=== 18. Final Report ===
+18. Final Report Chapter Structure & Submission Checklist
+18.1 Suggested Report Structure
+Chapter
+Content
+Source section here
+Front matter
+Title, certificate, declaration, acknowledgement, abstract, contents, list of figures/tables
+1, 2
+1. Introduction
+Background, motivation, problem statement, objectives, scope
+3.2–3.3
+2. Literature Survey
+Related work, research gap
+5
+3. Requirement Analysis
+PRD summary, SRS, hardware/software requirements
+3, 4
+4. System Design
+Architecture, flowchart, DFD, use cases, modules
+7
+5. Methodology
+Dataset, preprocessing, CNN architecture, training setup
+6, 8
+6. Implementation
+Tools, code snippets, UI screenshots
+9
+7. Testing
+Test plan, test cases and results
+10
+8. Results & Discussion
+Metrics, graphs, confusion matrix, comparisons
+11
+9. Conclusion & Future Scope
+Summary, limitations, extensions
+15
+References & Appendices
+Citations, full code, user manual
+14, 16
+18.2 Submission Checklist
+☐ Synopsis approved by guide
+☐ PRD and SRS completed
+☐ Code in a GitHub repository with README
+☐ Trained models saved in models/
+☐ Plots (loss/accuracy curves, confusion matrix) in reports/
+☐ Test cases executed and status filled
+☐ Final report (PDF) formatted as per college guidelines
+☐ Plagiarism report within the allowed limit
+☐ Presentation (PPT) with 10–15 slides ready
+☐ Demo tested on the presentation laptop (offline fallback ready)
+☐ Viva questions rehearsed
+18.3 Suggested PPT Outline (12 slides)
+Title
+Problem statement
+Objectives
+Literature survey / research gap
+Dataset (MNIST, EMNIST)
+System architecture
+CNN architecture
+Preprocessing and training setup
+Results (curves, confusion matrix)
+Live demo / UI screenshots
+Conclusion and future scope
+References and Q&A
+
+============================================================
+

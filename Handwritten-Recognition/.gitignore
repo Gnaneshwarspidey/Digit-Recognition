@@ -36,3 +36,8 @@ ENV/
 .DS_Store
 Thumbs.db
 
+# Datasets and Large Archives
+data/
+*.gz
+*.zip
+*.tar
